@@ -233,7 +233,6 @@ st.text(
     towards the last quarter of 2020.'
 )
 
-@st.cache()
 def create_data_for_various_plots(df, field, freq='1D', 
                                 eng_cols=None,
                                 agg_var = None, 
@@ -589,6 +588,138 @@ st.dataframe(
   #                                          .apply(highlight_table, args=(state_eng_mean, ), axis=0)\
 )
 
+# subset the daily engagement data to analyze the month on month
+# mean engagement at state level
+district_wise_mom_engagement_growth = data_for_sparkline(tmp_df, ['state', 'district_id', 'usage_month'], 'time', max_time='2020-12',
+                              min_time='2020-01',
+                              agg_var='scaled_engagement',
+                              is_district=True,
+                              cust_sparkline=False)
 
+
+# mean_eng_threshold = daily_eng_df['scaled_engagement'].mean()
+st.title('Share in engagement index of top 10 Districts')
+st.dataframe(
+    district_wise_mom_engagement_growth.sort_values(['growth', 'state'], ascending=[False, True], kind='mergesort')[:10].style\
+                                            .format('{:.1%}', subset=['growth'])\
+                                            .format('{:.1%}', subset=district_wise_mom_engagement_growth.columns.drop(['trend', 'growth']))\
+                                            .set_table_styles([{
+                                                'selector': 'caption',
+                                                'props': [
+                                                    ('font-size', '16px')
+                                                ]
+                                            }])\
+ #                                           .set_caption('Share in engagement index of top 10 Districts')\
+                                            .set_properties(padding='10px', border='2px solid white')\
+                                            .background_gradient(cmap='RdYlGn', subset=grad_cols, axis=1)\
+                                            .background_gradient(cmap='RdYlGn', subset=['growth'], axis=0)
+ #                                           .apply(highlight_table, args=(mean_dist_eng, ), axis=0)
+)
+
+st.title('Share in engagement index of bottom 10 Districts')
+st.dataframe(
+    district_wise_mom_engagement_growth.sort_values(['growth', 'state'], ascending=[False, True], kind='mergesort')[-10:].style\
+                                            .format('{:.1%}', subset=['growth'])\
+                                            .format('{:.1%}', subset=district_wise_mom_engagement_growth.columns.drop(['trend', 'growth']))\
+                                            .set_table_styles([{
+                                                'selector': 'caption',
+                                                'props': [
+                                                    ('font-size', '16px')
+                                                ]
+                                            }])\
+                                            .set_caption('Share in engagement index of bottom 10 Districts')\
+                                            .set_properties(padding='10px', border='2px solid white')\
+                                            .background_gradient(cmap='RdYlGn', subset=grad_cols, axis=1)\
+                                            .background_gradient(cmap='RdYlGn', subset=['growth'], axis=0)
+ #                                           .apply(highlight_table, args=(mean_dist_eng, ), axis=0)
+) 
+
+# Product usage
+# filter the null values in the LP ID and state level
+lp_daily_eng_df = daily_eng_df[(daily_eng_df['LP ID'].notnull()) & (daily_eng_df['state'].notnull())].reset_index(drop=True)
+
+monthly_product_usage = lp_daily_eng_df.groupby(['time'])['LP ID'].size()
+#monthly_product_usage.set_index('time', inplace=True)
+monthly_product_usage = monthly_product_usage.resample('1M').sum() / monthly_product_usage.sum()
+monthly_product_usage.index = monthly_product_usage.index - MonthBegin(1)
+
+# plot the monthly share of product usage
+fig = px.line(monthly_product_usage, y='LP ID', title='Monthly frequency of product usage', 
+       )
+max_yaxis = monthly_product_usage.max()
+fig.update_yaxes(tickformat=".0%",
+                range=[0, np.round(max_yaxis, 2)],
+                )
+st.plotly_chart(
+    fig.update_xaxes(dtick="M1",
+                 tickformat="%b\n%Y")
+)
+st.title('Product characteristics')
+tab1, tab2 = st.columns(2)
+tab1.header('Share of top 10 daily used products')
+tab1.dataframe(
+        pd.DataFrame(lp_daily_eng_df['Product Name']\
+                .value_counts(normalize=True))[:10]\
+                .style\
+                .format('{:.0%}')\
+                .set_table_styles([{
+                    'selector': 'caption',
+                    'props': [
+                        ('font-size', '16px')
+                    ]
+                }])\
+    #            .set_caption('Share of top 10 daily used products')\
+                .set_properties(padding='10px', border='2px solid white')\
+                .bar(color=bar_color)
+    )
+tab2.header('Share of Sector(s)')
+tab2.dataframe(
+    pd.DataFrame(lp_daily_eng_df['Sector(s)']\
+            .value_counts(normalize=True))[-10:]\
+            .style\
+            .format('{:.0%}')\
+            .set_table_styles([{
+                'selector': 'caption',
+                'props': [
+                    ('font-size', '16px')
+                ]
+             }])\
+#            .set_caption('Share of Sector(s)')\
+            .set_properties(padding='10px', border='2px solid white')\
+            .bar(color=bar_color)
+)
+st.title('Share of top 10 Provider/Company Name')
+st.dataframe(
+    pd.DataFrame(lp_daily_eng_df['Provider/Company Name']\
+                .value_counts(normalize=True))[:10]\
+                .style\
+                .format('{:.0%}')\
+                .set_table_styles([{
+                    'selector': 'caption',
+                    'props': [
+                        ('font-size', '16px')
+                    ]
+                }])\
+    #            .set_caption('Share of top 10 Provider/Company Name')\
+                .set_properties(padding='10px', border='2px solid white')\
+                .bar(color=bar_color)
+)
+#tab3, tab4 = st.columns(2)
+st.title('Share of top 10 Primary Essential Function')
+st.dataframe(
+    pd.DataFrame(lp_daily_eng_df['Primary Essential Function']\
+            .value_counts(normalize=True))[:10]\
+            .style\
+            .format('{:.0%}')\
+            .set_table_styles([{
+                'selector': 'caption',
+                'props': [
+                    ('font-size', '16px')
+                ]
+             }])\
+#            .set_caption('Share of top 10 Primary Essential Function')\
+            .set_properties(padding='10px', border='2px solid white')\
+            .bar(color=bar_color)
+)
 
 st.stop()
