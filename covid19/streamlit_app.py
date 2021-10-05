@@ -31,6 +31,7 @@ filterwarnings('ignore')
 
 path = r'/Users/home/Documents/kaggle/covid19/input/learnplatform-covid19-impact-on-digital-learning/'
 
+
 # read the data
 districts = pd.read_csv(os.path.join(path, 'districts_info.csv'))
 
@@ -86,7 +87,7 @@ def create_table_bar_chart(df, var, bar_color=None, title=None):
           .set_properties(padding='10px', border='2px solid white')\
           .bar(color=bar_color)
     )
-@st.cache
+# @st.cache
 def create_engagement_dataset(path, file='*.csv'):
     """
     Create engagement dataset
@@ -419,7 +420,7 @@ st.text(
     '3) There is a moderately strong positive correlation \n\
     between pct_access and county_connections_means_ratio.'
 )
-st.cache()
+# @st.cache
 def create_parallel_coord(df, states):
 
     fig = go.Figure(data=
@@ -459,7 +460,7 @@ st.plotly_chart(
     use_container_width=True
 )
 
-@st.cache()
+# @st.cache
 def data_for_sparkline(df, grp_var, time_var, max_time='2020-12',
                               min_time='2020-01',
                               agg_var=None,
@@ -531,7 +532,7 @@ def highlight_table(row, threshold=.05):
         for cell in row
     ]
 
-@st.cache()
+@st.cache
 def custom_sparkline(data, figsize=(3, 0.25), **kwags):
     """
     Create a sparkline chart
@@ -721,5 +722,53 @@ st.dataframe(
             .set_properties(padding='10px', border='2px solid white')\
             .bar(color=bar_color)
 )
-
+st.title('Share in engagement of top 10 products')
+product_eng_usage_df = data_for_sparkline(lp_daily_eng_df, ['Product Name', 'usage_month'], 'time', max_time='2020-12',
+                              min_time='2020-01',
+                              agg_var='engagement_index',
+                              is_product_eng=True,
+                              is_multi_level=False,
+                              cust_sparkline=False)
+st.dataframe(
+    product_eng_usage_df.sort_values(['growth', 'Product Name'], ascending=[False, True], kind='mergesort')[:10].style\
+                                            .format('{:.1%}', subset=product_eng_usage_df.columns.drop(['trend']))\
+                                            .set_table_styles([{
+                                                'selector': 'caption',
+                                                'props': [
+                                                    ('font-size', '16px')
+                                                ]
+                                            }])\
+ #                                           .set_caption('Share in engagement of top 10 products')\
+                                            .set_properties(padding='10px', border='2px solid white')\
+                                            .background_gradient(cmap='RdYlGn', subset=grad_cols, axis=1)\
+                                            .background_gradient(cmap='RdYlGn', subset=['growth'], axis=0)
+#                                            .apply(highlight_table, args=(mean_prod_state_usage,))
+)
+prod_list = product_eng_usage_df.index.tolist()
+prod_container = st.container()
+# all_ = st.checkbox('Select all', value=False)
+with prod_container:
+    # if all_:
+    #     prod_selection = st.multiselect('Select product', prod_list, prod_list)
+    # else:
+    #     prod_selection = st.multiselect('Select product', prod_list)
+    st.title('Compare product engagement over time')
+    prod_selection = st.multiselect('Select product(s)', ['All'] + prod_list)
+    if 'All' in prod_selection:
+        prod_selection = prod_list
+    st.dataframe(
+        product_eng_usage_df.query(f'`Product Name` == {prod_selection}').sort_values(['growth', 'Product Name'], ascending=[False, True], kind='mergesort').style\
+                                                .format('{:.1%}', subset=product_eng_usage_df.columns.drop(['trend']))\
+                                                .set_table_styles([{
+                                                    'selector': 'caption',
+                                                    'props': [
+                                                        ('font-size', '16px')
+                                                    ]
+                                                }])\
+    #                                           .set_caption('Share in engagement of top 10 products')\
+                                                .set_properties(padding='10px', border='2px solid white')\
+                                                .background_gradient(cmap='RdYlGn', subset=grad_cols, axis=1)\
+                                                .background_gradient(cmap='RdYlGn', subset=['growth'], axis=0)
+    #                                            .apply(highlight_table, args=(mean_prod_state_usage,))
+    )
 st.stop()
