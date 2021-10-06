@@ -1,14 +1,14 @@
 import pandas as pd
 import numpy as np
-import os, sys
+import os
 import matplotlib.pyplot as plt
-import seaborn as sns
+# import seaborn as sns
 import plotly.io as pio
 import plotly.express as px
 import plotly.graph_objects as go
 import re
 import glob
-import dask.dataframe as dd
+# import dask.dataframe as dd
 from sklearn.preprocessing import MinMaxScaler
 import datetime
 from pandas.tseries.offsets import MonthBegin
@@ -17,17 +17,17 @@ import sparklines
 import base64
 from itertools import combinations
 from io import BytesIO
-from IPython.display import HTML
+# from IPython.display import HTML
 from plotly.subplots import make_subplots
-from warnings import filterwarnings
+# from warnings import filterwarnings
 import streamlit as st
-from annotated_text import annotated_text
+# from annotated_text import annotated_text
 
-pd.set_option('MAX_ROWS', None)
-pd.set_option('MAX_COLUMNS', None)
-pd.set_option('display.max_colwidth', None)
-pio.templates.default = "none"
-filterwarnings('ignore')
+# pd.set_option('MAX_ROWS', None)
+# pd.set_option('MAX_COLUMNS', None)
+# pd.set_option('display.max_colwidth', None)
+# pio.templates.default = "none"
+# filterwarnings('ignore')
 
 path = r'/Users/home/Documents/kaggle/covid19/input/learnplatform-covid19-impact-on-digital-learning/'
 
@@ -202,9 +202,13 @@ st.plotly_chart(
 )
 color_grey = '#808080'
 st.text('What do we observe')
-annotated_text(
-    ('engagement_index', '', color_grey), ' - the total page load events per 1000 \n\
-    students for a given product on a given day'
+# annotated_text(
+#     ('engagement_index', '', color_grey), ' - the total page load events per 1000 \n\
+#     students for a given product on a given day'
+# )
+st.markdown(
+        '`engagement_index` - the total page load events per 1000 \n\
+         students for a given product on a given day'
 )
 st.text(
     '1) Schools were given orders to shut down in March. However, from this chart, it took a while before \n\
@@ -223,9 +227,13 @@ st.plotly_chart(
 )
 
 st.text('What do we observe')
-annotated_text(
-    ('pct_access', '', color_grey), ' - Percentage of students in the district have at least \n\
-    one page-load event of a given product and on a given day'
+# annotated_text(
+#     ('pct_access', '', color_grey), ' - Percentage of students in the district have at least \n\
+#     one page-load event of a given product and on a given day'
+# )
+st.markdown(
+     '`pct_access` - Percentage of students in the district have at least \n\
+     one page-load event of a given product and on a given day'
 )
 st.text(
     '1) The pct_access is at its highest in January. From here onwards, it drops gradually \n\
@@ -370,57 +378,60 @@ st.text(
     reported Black/Hispanic students, percent of free/reduced mean price and \n\
     median per pupil expenditure.\n"
 )
+# Code for corr plot
 
-cols_compare = ['pct_access', 'engagement_index', 'pct_mean_black_hispanic',
-               'pct_mean_free', 'median_pp_total_raw', 'county_connections_mean_ratio']
-dist_corr = district_level_data_df[cols_compare].corr()
-N = len(dist_corr.columns)
-X = dist_corr.columns.tolist()
-mask = np.zeros_like(dist_corr, dtype = np.bool)
-mask[np.triu_indices_from(mask)] = True
-dist_corr=dist_corr.mask(mask)
-hovertext = [[f'corr({X[i]}, {X[j]}) = {dist_corr.values[i][j]:.0%}' if i > j else '' for j in range(N)] for i in range(N)]
-heat = go.Heatmap(z=dist_corr,
-                  x=X,
-                  y=X,
-                  xgap=1, ygap=1,
-                  colorscale='rdylgn',
-                  colorbar_thickness=20,
-                  colorbar_ticklen=3,
-                  hovertext=hovertext,
-                  hoverinfo='text'
-                   )
+# cols_compare = ['pct_access', 'engagement_index', 'pct_mean_black_hispanic',
+#                'pct_mean_free', 'median_pp_total_raw', 'county_connections_mean_ratio']
+# dist_corr = district_level_data_df[cols_compare].corr()
+# N = len(dist_corr.columns)
+# X = dist_corr.columns.tolist()
+# mask = np.zeros_like(dist_corr, dtype = np.bool)
+# mask[np.triu_indices_from(mask)] = True
+# dist_corr=dist_corr.mask(mask)
+# hovertext = [[f'corr({X[i]}, {X[j]}) = {dist_corr.values[i][j]:.0%}' if i > j else '' for j in range(N)] for i in range(N)]
+# heat = go.Heatmap(z=dist_corr,
+#                   x=X,
+#                   y=X,
+#                   xgap=1, ygap=1,
+#                   colorscale='rdylgn',
+#                   colorbar_thickness=20,
+#                   colorbar_ticklen=3,
+#                   hovertext=hovertext,
+#                   hoverinfo='text'
+#                    )
 
 
-title = 'Correlation plot for district level features'               
+# title = 'Correlation plot for district level features'               
 
-layout = go.Layout(title_text=title, title_x=0.5, 
-                   width=800, height=800,
-                   xaxis_showgrid=False,
-                   yaxis_showgrid=False,
-                   yaxis_automargin=True,
-                   xaxis_automargin=True,
-                   yaxis_autorange='reversed')
+# layout = go.Layout(title_text=title, title_x=0.5, 
+#                    width=800, height=800,
+#                    xaxis_showgrid=False,
+#                    yaxis_showgrid=False,
+#                    yaxis_automargin=True,
+#                    xaxis_automargin=True,
+#                    yaxis_autorange='reversed')
    
-fig=go.Figure(data=[heat], layout=layout)        
-st.plotly_chart(
-    fig,
-    use_container_width=True
-)
+# fig=go.Figure(data=[heat], layout=layout)        
+# st.plotly_chart(
+#     fig,
+#     use_container_width=True
+# )
 
-st.text('What do we observe')
-st.text(
-    '1) Not all district features are strong correlated.\n'
+# st.text('What do we observe')
+# st.text(
+#     '1) Not all district features are strong correlated.\n'
 
-    '2) The only relationships that stand out are: pct_access \n\
-    versus engagement_index. b) engagement_index versus \n\
-    median_pp_total_raw. c) pct_mean_free versus pct_mean_black_hispanic. \n\
-    All of these relationships are positively correlated.\n'
+#     '2) The only relationships that stand out are: pct_access \n\
+#     versus engagement_index. b) engagement_index versus \n\
+#     median_pp_total_raw. c) pct_mean_free versus pct_mean_black_hispanic. \n\
+#     All of these relationships are positively correlated.\n'
 
-    '3) There is a moderately strong positive correlation \n\
-    between pct_access and county_connections_means_ratio.'
-)
-# @st.cache
+#     '3) There is a moderately strong positive correlation \n\
+#     between pct_access and county_connections_means_ratio.'
+# )
+
+# Code for parallel coordinate plot
+# # @st.cache
 def create_parallel_coord(df, states):
 
     fig = go.Figure(data=
