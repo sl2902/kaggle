@@ -302,8 +302,8 @@ state_level_data_melted_df  = pd.melt(state_level_data_df, id_vars=['state'], va
                                                              'scaled_investment'], 
             value_name='feature_value', var_name='feature_parameter')
 # sort the dataframe in descending order of mean value for each feature_parameter
-state_level_data_melted_df = state_level_data_melted_df.groupby(['feature_parameter'])['state', \
-                                                           'feature_value']\
+state_level_data_melted_df = state_level_data_melted_df.groupby(['feature_parameter'])[['state', \
+                                                           'feature_value']]\
                                                         .apply(lambda x: x.sort_values('feature_value', ascending=False))\
                                                         .reset_index()\
                                                         .drop(['level_1'], axis=1)

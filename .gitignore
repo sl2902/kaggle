@@ -1,2 +1,4 @@
 input
 test.py
+.DS_Store
+streamlit_env
