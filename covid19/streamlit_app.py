@@ -29,9 +29,9 @@ import streamlit as st
 # pio.templates.default = "none"
 # filterwarnings('ignore')
 
-path = r'/Users/home/Documents/kaggle/covid19/input/learnplatform-covid19-impact-on-digital-learning/'
+# path = r'/Users/home/Documents/kaggle/covid19/input/learnplatform-covid19-impact-on-digital-learning/'
 
-
+path = os.path.join(os.getcwd(), "input/learnplatform-covid19-impact-on-digital-learning/")
 # read the data
 districts = pd.read_csv(os.path.join(path, 'districts_info.csv'))
 
@@ -68,25 +68,25 @@ districts['scaled_investment'] = minmax.fit_transform(districts['median_pp_total
 products = pd.read_csv(os.path.join(path, 'products_info.csv'))
 
 
-def create_table_bar_chart(df, var, bar_color=None, title=None):
-    """
-    Create a tabular bar chart
-    """
-    HTML(
-        pd.DataFrame(df[var]\
-            .value_counts(normalize=True))\
-            .style\
-            .format('{:.0%}')\
-            .set_table_styles([{
-            'selector': 'caption',
-            'props': [
-                ('font-size', '16px')
-            ]
-            }])\
-          .set_caption(title)\
-          .set_properties(padding='10px', border='2px solid white')\
-          .bar(color=bar_color)
-    )
+# def create_table_bar_chart(df, var, bar_color=None, title=None):
+#     """
+#     Create a tabular bar chart
+#     """
+#     HTML(
+#         pd.DataFrame(df[var]\
+#             .value_counts(normalize=True))\
+#             .style\
+#             .format('{:.0%}')\
+#             .set_table_styles([{
+#             'selector': 'caption',
+#             'props': [
+#                 ('font-size', '16px')
+#             ]
+#             }])\
+#           .set_caption(title)\
+#           .set_properties(padding='10px', border='2px solid white')\
+#           .bar(color=bar_color)
+#     )
 # @st.cache
 def create_engagement_dataset(path, file='*.csv'):
     """
