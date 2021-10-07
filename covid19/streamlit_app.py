@@ -15,6 +15,7 @@ from pandas.tseries.offsets import MonthBegin
 from operator import attrgetter
 import sparklines
 import base64
+import copy
 from itertools import combinations
 from io import BytesIO
 # from IPython.display import HTML
@@ -87,7 +88,7 @@ products = pd.read_csv(os.path.join(path, 'products_info.csv'))
 #           .set_properties(padding='10px', border='2px solid white')\
 #           .bar(color=bar_color)
 #     )
-# @st.cache
+
 def create_engagement_dataset(path, file='*.csv'):
     """
     Create engagement dataset
@@ -104,22 +105,36 @@ def create_engagement_dataset(path, file='*.csv'):
         all_df.append(df)
     return pd.concat(all_df, ignore_index=True)
 
-eng_path = r'engagement_data'
-daily_eng_df = create_engagement_dataset(os.path.join(path, eng_path))  
-
-# drop records with no engagement
-daily_eng_df.dropna(inplace=True)
-
-# merge daily engagement data and products
-daily_eng_df = daily_eng_df.merge(products, 
+@st.cache
+def merge_datasets(path, file="*.csv"):
+    """
+    Create engagement dataset
+    and also merge them with
+    products and districts datasets
+    """
+    df = create_engagement_dataset(path)  
+    # drop records with no engagement   
+    df.dropna(inplace=True) 
+    # merge daily engagement data and products
+    df = df.merge(products, 
             left_on=['lp_id'], right_on=['LP ID'], how='left')
 
-daily_eng_df['scaled_access'] = minmax.fit_transform(daily_eng_df['pct_access'].values.reshape(-1, 1))
-daily_eng_df['scaled_engagement'] = minmax.fit_transform(daily_eng_df['engagement_index'].values.reshape(-1, 1))
+    df['scaled_access'] = minmax.fit_transform(df['pct_access'].values.reshape(-1, 1))
+    df['scaled_engagement'] = minmax.fit_transform(df['engagement_index'].values.reshape(-1, 1))
 
 
-daily_eng_df = daily_eng_df.merge(districts[['district_id', 'state', 'locale']], 
+    df = df.merge(districts[['district_id', 'state', 'locale']], 
                                  left_on=['district_id'], right_on=['district_id'], how='left')
+    return df
+
+eng_path = r'engagement_data'
+daily_eng_df = merge_datasets(os.path.join(path, eng_path))
+
+# eng_path = r'engagement_data'
+# daily_eng_df = create_engagement_dataset(os.path.join(path, eng_path))
+
+
+
 
 # create_table_bar_chart(daily_eng_df, 'state', bar_color=bar_color, title='Percentage of recorded engagements by State')
 st.title('Share of daily engagements by State')
@@ -242,6 +257,7 @@ st.text(
     towards the last quarter of 2020.'
 )
 
+@st.cache(allow_output_mutation=True)
 def create_data_for_various_plots(df, field, freq='1D', 
                                 eng_cols=None,
                                 agg_var = None, 
@@ -431,7 +447,6 @@ st.text(
 # )
 
 # Code for parallel coordinate plot
-# # @st.cache
 def create_parallel_coord(df, states):
 
     fig = go.Figure(data=
@@ -471,7 +486,7 @@ st.plotly_chart(
     use_container_width=True
 )
 
-# @st.cache
+@st.cache(allow_output_mutation=True)
 def data_for_sparkline(df, grp_var, time_var, max_time='2020-12',
                               min_time='2020-01',
                               agg_var=None,
@@ -543,7 +558,6 @@ def highlight_table(row, threshold=.05):
         for cell in row
     ]
 
-@st.cache
 def custom_sparkline(data, figsize=(3, 0.25), **kwags):
     """
     Create a sparkline chart
