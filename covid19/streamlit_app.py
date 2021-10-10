@@ -32,7 +32,12 @@ import streamlit as st
 
 # path = r'/Users/home/Documents/kaggle/covid19/input/learnplatform-covid19-impact-on-digital-learning/'
 
-path = os.path.join(os.getcwd(), "input/learnplatform-covid19-impact-on-digital-learning/")
+# fooking bug in stramlit causes it to overlook 'covid19' folder in the repo
+# for some strange reason it starts running from /app folder
+if '/app' in os.getcwd():
+    path = os.path.join(os.getcwd(), "covid19/input/learnplatform-covid19-impact-on-digital-learning")
+else:
+    path = os.path.join(os.getcwd(), "input/learnplatform-covid19-impact-on-digital-learning/")
 # read the data
 districts = pd.read_csv(os.path.join(path, 'districts_info.csv'))
 
