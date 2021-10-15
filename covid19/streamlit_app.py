@@ -147,16 +147,16 @@ st.title('Share of daily engagements by State')
 bar_color = '#FF7F7F'
 st.dataframe(
     pd.DataFrame(daily_eng_df['state'].value_counts(normalize=True)).style\
-                                                              .format('{:.0%}')\
-                                                              .set_table_styles([{
+                                                            .format('{:.0%}')\
+                                                            .set_table_styles([{
                                                                 'selector': 'caption',
                                                                 'props': [
                                                                     ('font-size', '16px')
                                                                 ]
                                                             }])\
 #                                                             .set_caption('Share of daily engagements by State')\
-                                                             .set_properties(padding='10px', border='2px solid white')\
-                                                             .bar(color=bar_color)    
+                                                            .set_properties(padding='10px', border='2px solid white')\
+                                                            .bar(color=bar_color)    
 )
 st.text('What do we observe')
 st.text(
@@ -167,9 +167,10 @@ st.text(
 st.title('District-wise - Number of daily engagements')
 tab1, tab2 = st.columns(2)
 tab1.header('Top 5 districts')
+
 tab1.dataframe(
     # top 5 districts in terms of number of engagements recorded
-    pd.DataFrame(daily_eng_df.groupby(['state','district_id']).size())\
+    pd.DataFrame(daily_eng_df.groupby(['state', 'district_id']).size())\
             .sort_values(0, ascending=False)[:5]\
             .rename(columns={0: 'count'})\
             .style\
@@ -208,11 +209,16 @@ st.text(
     state has one of the lowest number of engagements - ~5K.'
 )
 
-# time-series plot of mean monthly engagement_index 
-overall_mean_eng_df = daily_eng_df[['time', 'pct_access', 'engagement_index']].copy()
-overall_mean_eng_df.set_index('time', inplace=True)
-overall_mean_eng_df = overall_mean_eng_df.resample('1M').mean()
-overall_mean_eng_df.index = overall_mean_eng_df.index - MonthBegin(1)
+@st.cache
+def mean_monthly_engagement(df):
+    # time-series plot of mean monthly engagement_index 
+    overall_mean_eng_df = df[['time', 'pct_access', 'engagement_index']].copy()
+    overall_mean_eng_df.set_index('time', inplace=True)
+    overall_mean_eng_df = overall_mean_eng_df.resample('1M').mean()
+    overall_mean_eng_df.index = overall_mean_eng_df.index - MonthBegin(1)
+    return overall_mean_eng_df
+
+overall_mean_eng_df = mean_monthly_engagement(daily_eng_df)
 st.title('Mean monthly engagement index across all districts')
 fig = px.line(overall_mean_eng_df, y='engagement_index',
               title='Mean monthly engagement index across all districts')
@@ -453,7 +459,7 @@ st.text(
 # )
 
 # Code for parallel coordinate plot
-def create_parallel_coord(df, states):
+def create_parallel_coord(df, state):
 
     fig = go.Figure(data=
                     go.Parcoords(
@@ -484,11 +490,14 @@ def create_parallel_coord(df, states):
     fig.update_layout(title=f'Relationship between the district features in the state of {state}')
     return fig
 
-state = 'New York'
+st.title('District-wise characteristics')
+states_list = district_level_data_df['state'].sort_values().unique().tolist()
+state_selection = st.selectbox('Select State', states_list)
+#st.write('State chosen is {}'.format(state_selection))
+# state = 'New York'
 district_level_data_df['district_id'] = district_level_data_df['district_id'].astype('int32')
-st.title('District-wise characteristics for NY')
 st.plotly_chart(
-    create_parallel_coord(district_level_data_df.query(f'state == "{state}"'), state),
+    create_parallel_coord(district_level_data_df.query(f'state == "{state_selection}"'), state_selection),
     use_container_width=True
 )
 
@@ -593,16 +602,25 @@ def custom_sparkline(data, figsize=(3, 0.25), **kwags):
 
 # subset the daily engagement data to analyze the month on month
 # mean engagement at state level
-tmp_df = daily_eng_df[['state', 'district_id', 'usage_month', 'scaled_engagement', 'scaled_access']].copy()
-state_wise_mom_engagement_growth = data_for_sparkline(tmp_df, ['state', 'usage_month'], 'time', max_time='2020-12',
-                              min_time='2020-01',
-                              agg_var='scaled_engagement',
-                              is_state=True,
-                              cust_sparkline=False)
+st.cache(suppress_st_warning=True)
+def state_wise_mom_sparkline_data(df, agg_var, fields=[]):
+    """
+    Function to prepare the data; this is to enable caching
+    """
+    tmp_df = df[fields].copy()
+    state_wise_mom_engagement_growth = data_for_sparkline(tmp_df, ['state', 'usage_month'], 'time', max_time='2020-12',
+                                min_time='2020-01',
+                                agg_var=agg_var,
+                                is_state=True,
+                                cust_sparkline=False)
 
-# mean_eng_threshold = daily_eng_df.groupby(['state'.mean()
-grad_cols = state_wise_mom_engagement_growth.columns.drop(['trend', 'growth']).tolist()
+    # mean_eng_threshold = daily_eng_df.groupby(['state'.mean()
+    grad_cols = state_wise_mom_engagement_growth.columns.drop(['trend', 'growth']).tolist()
+    return grad_cols, tmp_df, state_wise_mom_engagement_growth
 st.title('Share in engagement index by State')
+grad_cols, tmp_df, state_wise_mom_engagement_growth = state_wise_mom_sparkline_data(daily_eng_df, 
+                        'scaled_engagement', 
+                        ['state', 'district_id', 'usage_month', 'scaled_engagement', 'scaled_access'])
 st.dataframe(
     state_wise_mom_engagement_growth.sort_values(['growth', 'state'], ascending=[False, True], kind='mergesort').style\
                                             .format('{:.1%}', subset=['growth'])\
@@ -622,6 +640,7 @@ st.dataframe(
 
 # subset the daily engagement data to analyze the month on month
 # mean engagement at state level
+
 district_wise_mom_engagement_growth = data_for_sparkline(tmp_df, ['state', 'district_id', 'usage_month'], 'time', max_time='2020-12',
                               min_time='2020-01',
                               agg_var='scaled_engagement',
@@ -630,53 +649,66 @@ district_wise_mom_engagement_growth = data_for_sparkline(tmp_df, ['state', 'dist
 
 
 # mean_eng_threshold = daily_eng_df['scaled_engagement'].mean()
-st.title('Share in engagement index of top 10 Districts')
-st.dataframe(
-    district_wise_mom_engagement_growth.sort_values(['growth', 'state'], ascending=[False, True], kind='mergesort')[:10].style\
-                                            .format('{:.1%}', subset=['growth'])\
-                                            .format('{:.1%}', subset=district_wise_mom_engagement_growth.columns.drop(['trend', 'growth']))\
-                                            .set_table_styles([{
-                                                'selector': 'caption',
-                                                'props': [
-                                                    ('font-size', '16px')
-                                                ]
-                                            }])\
- #                                           .set_caption('Share in engagement index of top 10 Districts')\
-                                            .set_properties(padding='10px', border='2px solid white')\
-                                            .background_gradient(cmap='RdYlGn', subset=grad_cols, axis=1)\
-                                            .background_gradient(cmap='RdYlGn', subset=['growth'], axis=0)
- #                                           .apply(highlight_table, args=(mean_dist_eng, ), axis=0)
-)
+st.title('Share in engagement index of Districts')
+# https://discuss.streamlit.io/t/horizontal-radio-buttons/2114/3
+st.write('<style>div.row-widget.stRadio > div{flex-direction:row;}</style>', unsafe_allow_html=True)
+sort_selection = st.radio('Sort', ["Ascending", "Descending"])
+n_selection = st.number_input('Top/Bottom n districts', min_value=1, max_value=10, value=5, step=1)
+if sort_selection == 'Ascending':
+    st.dataframe(
+        district_wise_mom_engagement_growth.sort_values(['growth', 'state'], ascending=[False, True], kind='mergesort')[:n_selection].style\
+                                                .format('{:.1%}', subset=['growth'])\
+                                                .format('{:.1%}', subset=district_wise_mom_engagement_growth.columns.drop(['trend', 'growth']))\
+                                                .set_table_styles([{
+                                                    'selector': 'caption',
+                                                    'props': [
+                                                        ('font-size', '16px')
+                                                    ]
+                                                }])\
+    #                                           .set_caption('Share in engagement index of top 10 Districts')\
+                                                .set_properties(padding='10px', border='2px solid white')\
+                                                .background_gradient(cmap='RdYlGn', subset=grad_cols, axis=1)\
+                                                .background_gradient(cmap='RdYlGn', subset=['growth'], axis=0)
+    #                                           .apply(highlight_table, args=(mean_dist_eng, ), axis=0)
+    )
+else:
+    # st.title(f'Share in engagement index of bottom {n_selection} Districts')
+    st.dataframe(
+        district_wise_mom_engagement_growth.sort_values(['growth', 'state'], ascending=[False, True], kind='mergesort')[-n_selection:].style\
+                                                .format('{:.1%}', subset=['growth'])\
+                                                .format('{:.1%}', subset=district_wise_mom_engagement_growth.columns.drop(['trend', 'growth']))\
+                                                .set_table_styles([{
+                                                    'selector': 'caption',
+                                                    'props': [
+                                                        ('font-size', '16px')
+                                                    ]
+                                                }])\
+                                                .set_caption('Share in engagement index of bottom 10 Districts')\
+                                                .set_properties(padding='10px', border='2px solid white')\
+                                                .background_gradient(cmap='RdYlGn', subset=grad_cols, axis=1)\
+                                                .background_gradient(cmap='RdYlGn', subset=['growth'], axis=0)
+     #                                           .apply(highlight_table, args=(mean_dist_eng, ), axis=0)
+    ) 
 
-st.title('Share in engagement index of bottom 10 Districts')
-st.dataframe(
-    district_wise_mom_engagement_growth.sort_values(['growth', 'state'], ascending=[False, True], kind='mergesort')[-10:].style\
-                                            .format('{:.1%}', subset=['growth'])\
-                                            .format('{:.1%}', subset=district_wise_mom_engagement_growth.columns.drop(['trend', 'growth']))\
-                                            .set_table_styles([{
-                                                'selector': 'caption',
-                                                'props': [
-                                                    ('font-size', '16px')
-                                                ]
-                                            }])\
-                                            .set_caption('Share in engagement index of bottom 10 Districts')\
-                                            .set_properties(padding='10px', border='2px solid white')\
-                                            .background_gradient(cmap='RdYlGn', subset=grad_cols, axis=1)\
-                                            .background_gradient(cmap='RdYlGn', subset=['growth'], axis=0)
- #                                           .apply(highlight_table, args=(mean_dist_eng, ), axis=0)
-) 
+@st.cache
+def product_data(df):
+    """
+    Prepare the product dataframe to enable caching
+    """
+    # Product usage
+    # filter the null values in the LP ID and state level
+    lp_daily_eng_df = df[(df['LP ID'].notnull()) & (df['state'].notnull())].reset_index(drop=True)
 
-# Product usage
-# filter the null values in the LP ID and state level
-lp_daily_eng_df = daily_eng_df[(daily_eng_df['LP ID'].notnull()) & (daily_eng_df['state'].notnull())].reset_index(drop=True)
+    monthly_product_usage = lp_daily_eng_df.groupby(['time'])['LP ID'].size()
+    #monthly_product_usage.set_index('time', inplace=True)
+    monthly_product_usage = monthly_product_usage.resample('1M').sum() / monthly_product_usage.sum()
+    monthly_product_usage.index = monthly_product_usage.index - MonthBegin(1)
+    return monthly_product_usage, lp_daily_eng_df
 
-monthly_product_usage = lp_daily_eng_df.groupby(['time'])['LP ID'].size()
-#monthly_product_usage.set_index('time', inplace=True)
-monthly_product_usage = monthly_product_usage.resample('1M').sum() / monthly_product_usage.sum()
-monthly_product_usage.index = monthly_product_usage.index - MonthBegin(1)
-
+monthly_product_usage, lp_daily_eng_df = product_data(daily_eng_df)
 # plot the monthly share of product usage
-fig = px.line(monthly_product_usage, y='LP ID', title='Monthly frequency of product usage', 
+fig = px.line(monthly_product_usage, y='LP ID', title='Monthly percentage of product usage', 
+                        labels={'LP ID': 'Product usage (%)'}
        )
 max_yaxis = monthly_product_usage.max()
 fig.update_yaxes(tickformat=".0%",
